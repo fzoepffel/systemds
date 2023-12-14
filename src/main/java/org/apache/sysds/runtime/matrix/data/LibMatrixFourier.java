@@ -2,6 +2,72 @@ package org.apache.sysds.runtime.matrix.data;
 
 public class LibMatrixFourier {
 
+    public static ComplexDouble[] czt(ComplexDouble[] x, int m) {
+        int n = x.length;
+        ComplexDouble w = new ComplexDouble(Math.cos(-2 * Math.PI / m), Math.sin(-2 * Math.PI / m));
+        ComplexDouble a = new ComplexDouble(1, 0);
+
+        ComplexDouble[] chirp = new ComplexDouble[Math.max(m, n)];
+        for (int i = 1 - n; i < Math.max(m, n); i++) {
+            chirp[i] = w.pow(i * i / 2.0);
+        }
+
+        // Pad x and compute Hadamard product
+        ComplexDouble[] xp = new ComplexDouble[m];
+        for (int i = 0; i < n; i++) {
+            xp[i] = x[i].multiply(a.pow(-i)).multiply(chirp[n - 1 + i]);
+        }
+
+        // Compute reciprocal chirp and pad
+        ComplexDouble[] ichirp = new ComplexDouble[m];
+        for (int i = 0; i < m + n - 1; i++) {
+            ichirp[i] = chirp[i].reciprocal();
+        }
+
+        // Perform FFTs
+        ComplexDouble[] fftXp = fft(xp);
+        ComplexDouble[] fftIchirp = fft(ichirp);
+
+        // Element-wise multiplication of fftXp and fftIchirp
+        ComplexDouble[] product = new ComplexDouble[fftXp.length];
+        for (int i = 0; i < fftXp.length; i++) {
+            product[i] = fftXp[i].multiply(fftIchirp[i]);
+        }
+
+        // Perform IFFT on the product
+        ComplexDouble[] r = ifft(product);
+
+        // Final Hadamard product
+        ComplexDouble[] result = new ComplexDouble[m];
+        for (int i = n - 1; i < m + n - 1; i++) {
+            result[i] = r[i].multiply(chirp[n - 1 + i]);
+        }
+
+        return result;
+    }
+
+    public static ComplexDouble[] ifft(ComplexDouble[] in){
+        int n = in.length;
+    
+        // Conjugate the complex numbers
+        ComplexDouble[] conjugated = new ComplexDouble[n];
+        for(int i = 0; i < n; i++){
+            conjugated[i] = in[i].conjugate();
+        }
+    
+        // Compute FFT on the conjugated array
+        ComplexDouble[] fftResult = fft(conjugated);
+    
+        // Conjugate the result and normalize
+        ComplexDouble[] ifftResult = new ComplexDouble[n];
+        for(int i = 0; i < n; i++){
+            ifftResult[i] = fftResult[i].conjugate().divide(n);
+        }
+    
+        return ifftResult;
+    }
+    
+
     /**
      * Function to perform Fast Fourier Transformation on a given array.
      * Its length has to be a power of two.
@@ -9,35 +75,45 @@ public class LibMatrixFourier {
      * @param in array of ComplexDoubles
      * @return array of ComplexDoubles
      */
-    public static ComplexDouble[] fft(ComplexDouble[] in){
-
-        // TODO: how to invert fillToPowerOfTwo after calculation
-        //  in = fillToPowerOfTwo(in);
-
+    public static ComplexDouble[] fft(ComplexDouble[] in) {
         int n = in.length;
-        if(n == 1){
-            return in;
+    
+        // Check if the length is a power of two
+        if (isPowerOfTwo(n)) {
+            // Existing FFT implementation for power-of-two lengths
+            if (n == 1) {
+                return in;
+            }
+    
+            double angle = 2 * Math.PI / n;
+            ComplexDouble omega = new ComplexDouble(Math.cos(angle), Math.sin(angle));
+    
+            ComplexDouble[] even = new ComplexDouble[n / 2];
+            ComplexDouble[] odd = new ComplexDouble[n / 2];
+            for (int i = 0; i < n / 2; i++) {
+                even[i] = in[i * 2];
+                odd[i] = in[i * 2 + 1];
+            }
+    
+            ComplexDouble[] resEven = fft(even);
+            ComplexDouble[] resOdd = fft(odd);
+    
+            ComplexDouble[] res = new ComplexDouble[n];
+            for (int j = 0; j < n / 2; j++) {
+                res[j] = resEven[j].add(omega.pow(j).mul(resOdd[j]));
+                res[j + n / 2] = resEven[j].sub(omega.pow(j).mul(resOdd[j]));
+            }
+            return res;
+        } else {
+            // Use CZT for non-power-of-two lengths
+            return czt(in, n);
         }
-
-        double angle = 2*Math.PI/n;
-        ComplexDouble omega = new ComplexDouble(Math.cos(angle), Math.sin(angle));
-
-        ComplexDouble[] even = new ComplexDouble[n/2];
-        ComplexDouble[] odd = new ComplexDouble[n/2];
-        for(int i=0; i < n/2; i++){
-            even[i] = in[i*2];
-            odd[i] = in[i*2+1];
-        }
-        ComplexDouble[] resEven = fft(even);
-        ComplexDouble[] resOdd = fft(odd);
-
-        ComplexDouble[] res = new ComplexDouble[n];
-        for(int j=0; j < n/2; j++){
-            res[j] = resEven[j].add(omega.pow(j).mul(resOdd[j]));
-            res[j+n/2] = resEven[j].sub(omega.pow(j).mul(resOdd[j]));
-        }
-        return res;
     }
+    
+    private static boolean isPowerOfTwo(int n) {
+        return n > 0 && (n & (n - 1)) == 0;
+    }
+    
 
     /**
      * Function to perform Fast Fourier Transformation on a given array.
