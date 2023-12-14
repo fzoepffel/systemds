@@ -12,32 +12,26 @@ public class LibMatrixFourier {
             chirp[i] = w.pow(i * i / 2.0);
         }
 
-        // Pad x and compute Hadamard product
         ComplexDouble[] xp = new ComplexDouble[m];
         for (int i = 0; i < n; i++) {
             xp[i] = x[i].multiply(a.pow(-i)).multiply(chirp[n - 1 + i]);
         }
 
-        // Compute reciprocal chirp and pad
         ComplexDouble[] ichirp = new ComplexDouble[m];
         for (int i = 0; i < m + n - 1; i++) {
             ichirp[i] = chirp[i].reciprocal();
         }
 
-        // Perform FFTs
         ComplexDouble[] fftXp = fft(xp);
         ComplexDouble[] fftIchirp = fft(ichirp);
 
-        // Element-wise multiplication of fftXp and fftIchirp
         ComplexDouble[] product = new ComplexDouble[fftXp.length];
         for (int i = 0; i < fftXp.length; i++) {
             product[i] = fftXp[i].multiply(fftIchirp[i]);
         }
 
-        // Perform IFFT on the product
         ComplexDouble[] r = ifft(product);
 
-        // Final Hadamard product
         ComplexDouble[] result = new ComplexDouble[m];
         for (int i = n - 1; i < m + n - 1; i++) {
             result[i] = r[i].multiply(chirp[n - 1 + i]);
@@ -49,16 +43,13 @@ public class LibMatrixFourier {
     public static ComplexDouble[] ifft(ComplexDouble[] in){
         int n = in.length;
     
-        // Conjugate the complex numbers
         ComplexDouble[] conjugated = new ComplexDouble[n];
         for(int i = 0; i < n; i++){
             conjugated[i] = in[i].conjugate();
         }
-    
-        // Compute FFT on the conjugated array
+
         ComplexDouble[] fftResult = fft(conjugated);
     
-        // Conjugate the result and normalize
         ComplexDouble[] ifftResult = new ComplexDouble[n];
         for(int i = 0; i < n; i++){
             ifftResult[i] = fftResult[i].conjugate().divide(n);
