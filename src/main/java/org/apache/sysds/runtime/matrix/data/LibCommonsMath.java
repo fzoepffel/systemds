@@ -49,7 +49,8 @@ import org.apache.sysds.runtime.matrix.operators.AggregateBinaryOperator;
 import org.apache.sysds.runtime.matrix.operators.BinaryOperator;
 import org.apache.sysds.runtime.util.DataConverter;
 
-import static org.apache.sysds.runtime.matrix.data.LibMatrixFourier.*;
+import static org.apache.sysds.runtime.matrix.data.LibMatrixFourier.fft;
+import static org.apache.sysds.runtime.matrix.data.LibMatrixFourier.ifft;
 
 /**
  * Library for matrix operations that need invocation of 
@@ -73,7 +74,17 @@ public class LibCommonsMath
 	}
 	
 	public static boolean isSupportedMultiReturnOperation( String opcode ) {
-		return ( opcode.equals("qr") || opcode.equals("lu") || opcode.equals("eigen") || opcode.equals("fft") || opcode.equals("ifft") || opcode.equals("svd") );
+
+		switch (opcode) {
+			case "qr":
+			case "lu":
+			case "eigen":
+			case "fft":
+			case "ifft":
+			case "svd": return true;
+			default: return false;
+		}
+
 	}
 	
 	public static boolean isSupportedMatrixMatrixOperation( String opcode ) {
@@ -101,25 +112,20 @@ public class LibCommonsMath
 	}
 
 	public static MatrixBlock[] multiReturnOperations(MatrixBlock in, String opcode, int threads, long seed) {
-		if(opcode.equals("qr"))
-			return computeQR(in);
-		else if (opcode.equals("qr2"))
-			return computeQR2(in, threads);
-		else if (opcode.equals("lu"))
-			return computeLU(in);
-		else if (opcode.equals("eigen"))
-			return computeEigen(in);
-		else if (opcode.equals("eigen_lanczos"))
-			return computeEigenLanczos(in, threads, seed);
-		else if (opcode.equals("eigen_qr"))
-			return computeEigenQR(in, threads);
-		else if (opcode.equals("fft"))
-			return computeFFT(in);
-		else if (opcode.equals("ifft"))
-			return computeIFFT(in);
-		else if (opcode.equals("svd"))
-			return computeSvd(in);
-		return null;
+
+		switch (opcode) {
+			case "qr": return computeQR(in);
+			case "qr2": return computeQR2(in, threads);
+			case "lu": return computeLU(in);
+			case "eigen": return computeEigen(in);
+			case "eigen_lanczos": return computeEigenLanczos(in, threads, seed);
+			case "eigen_qr": return computeEigenQR(in, threads);
+			case "fft": return computeFFT(in);
+			case "ifft": return computeIFFT(in);
+			case "svd": return computeSvd(in);
+			default: return null;
+		}
+
 	}
 	
 	public static MatrixBlock matrixMatrixOperations(MatrixBlock in1, MatrixBlock in2, String opcode) {
@@ -263,18 +269,17 @@ public class LibCommonsMath
 			throw new DMLRuntimeException("Invalid empty block");
 
 		//run fft
+		in.sparseToDense();
 		return fft(in);
 	}
 
 	private static MatrixBlock[] computeIFFT(MatrixBlock in) {
 		if( in == null || in.isEmptyBlock(false))
 			throw new DMLRuntimeException("Invalid empty block");
-		int rows = in.getNumRows();
-		int cols = in.getNumColumns();
 
-		MatrixBlock inIm = new MatrixBlock(rows, cols, new double[cols*rows]);
 		//run ifft
-		return ifft(in, inIm);
+		in.sparseToDense();
+		return ifft(in);
 	}
 
 	/**
