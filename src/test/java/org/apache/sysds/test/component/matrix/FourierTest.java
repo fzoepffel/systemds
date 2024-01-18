@@ -22,7 +22,6 @@ package org.apache.sysds.test.component.matrix;
 import org.apache.sysds.runtime.matrix.data.MatrixBlock;
 import org.junit.Test;
 
-import static org.apache.sysds.runtime.matrix.data.LibMatrixFourier.fft_one_dim;
 import static org.apache.sysds.runtime.matrix.data.LibMatrixFourier.fft;
 import static org.apache.sysds.runtime.matrix.data.LibMatrixFourier.ifft;
 
@@ -31,142 +30,132 @@ import static org.junit.Assert.assertTrue;
 
 public class FourierTest {
 
-    @Test
-    public void test_fft_one_dim() {
+	@Test
+	public void test_fft_one_dim() {
 
-        double[] re = {0, 18, -15, 3};
-        double[] im = {0, 0, 0, 0};
+		MatrixBlock re = new MatrixBlock(1, 4,  new double[]{0, 18, -15, 3});
+		MatrixBlock im = new MatrixBlock(1, 4,  new double[4]);
 
-        double[] re_inter = new double[4];
-        double[] im_inter = new double[4];
+		double[] expected_re = {6, 15, -36, 15};
+		double[] expected_im = {0, -15, 0, 15};
 
-        double[] expected_re = {6, 15, -36, 15};
-        double[] expected_im = {0, -15, 0, 15};
+		fft(re, im);
 
-        int cols = 4;
+		assertArrayEquals(expected_re, re.getDenseBlockValues(), 0.0001);
+		assertArrayEquals(expected_im, im.getDenseBlockValues(), 0.0001);
 
-        fft_one_dim(re, im, re_inter, im_inter, 0, 1, cols, cols);
+	}
 
-        assertArrayEquals(expected_re, re, 0.0001);
-        assertArrayEquals(expected_im, im, 0.0001);
+	@Test
+	public void test_fft_one_dim_2() {
 
-    }
+		MatrixBlock re = new MatrixBlock(1, 8,  new double[]{0, 18, -15, 3, 5, 10, 5, 9});
+		MatrixBlock im = new MatrixBlock(1, 8,  new double[8]);
 
-    @Test
-    public void test_fft_one_dim_2() {
+		double[] expected_re = {35, 4.89949, 15, -14.89949, -45, -14.89949, 15, 4.89949};
+		double[] expected_im = {0, 18.58579, -16, -21.41421, 0, 21.41421, 16, -18.58579};
 
-        double[] re = {0, 18, -15, 3, 5, 10, 5, 9};
-        double[] im = new double[8];
+		fft(re, im);
 
-        double[] re_inter = new double[8];
-        double[] im_inter = new double[8];
+		assertArrayEquals(expected_re, re.getDenseBlockValues(), 0.0001);
+		assertArrayEquals(expected_im, im.getDenseBlockValues(), 0.0001);
+	}
 
-        double[] expected_re = {35, 4.89949, 15, -14.89949, -45, -14.89949, 15, 4.89949};
-        double[] expected_im = {0, 18.58579, -16, -21.41421, 0, 21.41421, 16, -18.58579};
+	@Test
+	public void test_fft_one_dim_matrixBlock() {
 
-        int cols = 8;
+		MatrixBlock re = new MatrixBlock(1, 4,  new double[]{0, 18, -15, 3});
+		MatrixBlock im = new MatrixBlock(1, 4,  new double[]{0, 0, 0, 0});
 
-        fft_one_dim(re, im, re_inter, im_inter, 0, 1, cols, cols);
+		double[] expected_re = {6, 15, -36, 15};
+		double[] expected_im = {0, -15, 0, 15};
 
-        assertArrayEquals(expected_re, re, 0.0001);
-        assertArrayEquals(expected_im, im, 0.0001);
-    }
+		MatrixBlock[] res = fft(re, im);
 
-    @Test
-    public void test_fft_one_dim_matrixBlock() {
+		assertArrayEquals(expected_re, res[0].getDenseBlockValues(), 0.0001);
+		assertArrayEquals(expected_im, res[1].getDenseBlockValues(), 0.0001);
 
-        MatrixBlock re = new MatrixBlock(1, 4,  new double[]{0, 18, -15, 3});
-        MatrixBlock im = new MatrixBlock(1, 4,  new double[]{0, 0, 0, 0});
+	}
 
-        double[] expected_re = {6, 15, -36, 15};
-        double[] expected_im = {0, -15, 0, 15};
+	@Test
+	public void test_ifft_one_dim_matrixBlock_2() {
 
-        MatrixBlock[] res = fft(re, im);
+		double[] in_re = new double[]{1, -2, 3, -4};
+		double[] in_im = new double[]{0, 0, 0, 0};
 
-        assertArrayEquals(expected_re, res[0].getDenseBlockValues(), 0.0001);
-        assertArrayEquals(expected_im, res[1].getDenseBlockValues(), 0.0001);
+		MatrixBlock re = new MatrixBlock(1, 4, in_re);
+		MatrixBlock im = new MatrixBlock(1, 4, in_im);
 
-    }
+		MatrixBlock[] inter = fft(re, im);
+		MatrixBlock[] res = ifft(inter[0], inter[1]);
 
-    @Test
-    public void test_ifft_one_dim_matrixBlock_2() {
+		assertArrayEquals(in_re, res[0].getDenseBlockValues(), 0.0001);
+		assertArrayEquals(in_im, res[1].getDenseBlockValues(), 0.0001);
 
-        double[] in_re = new double[]{1, -2, 3, -4};
-        double[] in_im = new double[]{0, 0, 0, 0};
+	}
 
-        MatrixBlock re = new MatrixBlock(1, 4, in_re);
-        MatrixBlock im = new MatrixBlock(1, 4, in_im);
+	@Test
+	public void test_fft_two_dim_matrixBlock() {
 
-        MatrixBlock[] inter = fft(re, im);
-        MatrixBlock[] res = ifft(inter[0], inter[1]);
+		MatrixBlock re = new MatrixBlock(2, 2,  new double[]{0, 18, -15, 3});
+		MatrixBlock im = new MatrixBlock(2, 2,  new double[]{0, 0, 0, 0});
 
-        assertArrayEquals(in_re, res[0].getDenseBlockValues(), 0.0001);
-        assertArrayEquals(in_im, res[1].getDenseBlockValues(), 0.0001);
+		double[] expected_re = {6,-36, 30, 0};
+		double[] expected_im = {0, 0, 0, 0};
 
-    }
+		MatrixBlock[] res = fft(re, im);
 
-    @Test
-    public void test_fft_two_dim_matrixBlock() {
+		assertArrayEquals(expected_re, res[0].getDenseBlockValues(), 0.0001);
+		assertArrayEquals(expected_im, res[1].getDenseBlockValues(), 0.0001);
 
-        MatrixBlock re = new MatrixBlock(2, 2,  new double[]{0, 18, -15, 3});
-        MatrixBlock im = new MatrixBlock(2, 2,  new double[]{0, 0, 0, 0});
+	}
 
-        double[] expected_re = {6,-36, 30, 0};
-        double[] expected_im = {0, 0, 0, 0};
+	@Test
+	public void test_ifft_two_dim_matrixBlock() {
 
-        MatrixBlock[] res = fft(re, im);
+		MatrixBlock re = new MatrixBlock(2, 2,  new double[]{6,-36, 30, 0});
+		MatrixBlock im = new MatrixBlock(2, 2,  new double[]{0, 0, 0, 0});
 
-        assertArrayEquals(expected_re, res[0].getDenseBlockValues(), 0.0001);
-        assertArrayEquals(expected_im, res[1].getDenseBlockValues(), 0.0001);
+		double[] expected_re = {0, 18, -15, 3};
+		double[] expected_im = {0, 0, 0, 0};
 
-    }
+		MatrixBlock[] res = ifft(re, im);
 
-    @Test
-    public void test_ifft_two_dim_matrixBlock() {
+		assertArrayEquals(expected_re, res[0].getDenseBlockValues(), 0.0001);
+		assertArrayEquals(expected_im, res[1].getDenseBlockValues(), 0.0001);
 
-        MatrixBlock re = new MatrixBlock(2, 2,  new double[]{6,-36, 30, 0});
-        MatrixBlock im = new MatrixBlock(2, 2,  new double[]{0, 0, 0, 0});
+	}
 
-        double[] expected_re = {0, 18, -15, 3};
-        double[] expected_im = {0, 0, 0, 0};
+	@Test
+	public void test_fft_two_dim_matrixBlock_row_1() {
 
-        MatrixBlock[] res = ifft(re, im);
+		MatrixBlock re = new MatrixBlock(1, 2,  new double[]{0, 18});
+		MatrixBlock im = new MatrixBlock(1, 2,  new double[]{0, 0});
 
-        assertArrayEquals(expected_re, res[0].getDenseBlockValues(), 0.0001);
-        assertArrayEquals(expected_im, res[1].getDenseBlockValues(), 0.0001);
+		double[] expected_re = {18, -18};
+		double[] expected_im = {0, 0};
 
-    }
+		MatrixBlock[] res = fft(re, im);
 
-    @Test
-    public void test_fft_two_dim_matrixBlock_row_1() {
+		assertArrayEquals(expected_re, res[0].getDenseBlockValues(), 0.0001);
+		assertArrayEquals(expected_im, res[1].getDenseBlockValues(), 0.0001);
 
-        MatrixBlock re = new MatrixBlock(1, 2,  new double[]{0, 18});
-        MatrixBlock im = new MatrixBlock(1, 2,  new double[]{0, 0});
+	}
 
-        double[] expected_re = {18, -18};
-        double[] expected_im = {0, 0};
+	@Test
+	public void test_fft_two_dim_matrixBlock_row_2() {
 
-        MatrixBlock[] res = fft(re, im);
+		MatrixBlock re = new MatrixBlock(1, 2,  new double[]{ -15, 3});
+		MatrixBlock im = new MatrixBlock(1, 2,  new double[]{0, 0});
 
-        assertArrayEquals(expected_re, res[0].getDenseBlockValues(), 0.0001);
-        assertArrayEquals(expected_im, res[1].getDenseBlockValues(), 0.0001);
+		double[] expected_re = {-12, -18};
+		double[] expected_im = {0, 0};
 
-    }
+		MatrixBlock[] res = fft(re, im);
 
-    @Test
-    public void test_fft_two_dim_matrixBlock_row_2() {
+		assertArrayEquals(expected_re, res[0].getDenseBlockValues(), 0.0001);
+		assertArrayEquals(expected_im, res[1].getDenseBlockValues(), 0.0001);
 
-        MatrixBlock re = new MatrixBlock(1, 2,  new double[]{ -15, 3});
-        MatrixBlock im = new MatrixBlock(1, 2,  new double[]{0, 0});
-
-        double[] expected_re = {-12, -18};
-        double[] expected_im = {0, 0};
-
-        MatrixBlock[] res = fft(re, im);
-
-        assertArrayEquals(expected_re, res[0].getDenseBlockValues(), 0.0001);
-        assertArrayEquals(expected_im, res[1].getDenseBlockValues(), 0.0001);
-
-    }
+	}
 
 }
