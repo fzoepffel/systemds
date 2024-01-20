@@ -113,7 +113,7 @@ public class LibMatrixFourier {
 
 	}
 
-	private static void fft_one_dim(double[] re, double[] im, double[] re_inter, double[] im_inter, int start, int step, int num, int subArraySize) {
+	public static void fft_one_dim(double[] re, double[] im, double[] re_inter, double[] im_inter, int start, int step, int num, int subArraySize) {
 
 		if(num == 1) return;
 		double angle = -2*FastMath.PI/num;
