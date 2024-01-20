@@ -27,16 +27,16 @@ public class LibMatrixSTFT {
 
 		int cols = re.getNumColumns();
 
-		double[]in_re = new double[cols];
-		in_re = convertToArray(re);
-		//in[1] = convertToArray(im);
+		double[][] in = new double[2][cols];
+		in[0] = convertToArray(re);
+		in[1] = convertToArray(im);
 
-		MatrixBlock[] out = one_dim_stft(in_re, windowSize, overlap);
+		double[][] res = one_dim_stft(in[0], windowSize, overlap);
 
-		return out;
+		return convertToMatrixBlocks(res);
 	}
 
-	public static MatrixBlock[] one_dim_stft(double[] signal, int windowSize, int overlap) {
+	public static double[][] one_dim_stft(double[] signal, int windowSize, int overlap) {
 
 		if (windowSize < 1 || (windowSize & (windowSize - 1)) != 0) {
 			throw new IllegalArgumentException("frameSize is not a power of two");
@@ -45,8 +45,7 @@ public class LibMatrixSTFT {
 		int totalFrames = (signal.length - overlap) / stepSize;
 
 		// Initialize the STFT output array: [time frame][frequency bin][real & imaginary parts]
-		double[] stftOutput_re = new double[totalFrames * windowSize];
-		double[] stftOutput_im = new double[totalFrames * windowSize];
+		double[][] stftOutput = new double[2][totalFrames * windowSize];
 
 		for (int frame = 0; frame < totalFrames; frame++) {
 			double[] windowedSignal = new double[windowSize];
@@ -73,21 +72,21 @@ public class LibMatrixSTFT {
 			// Store the FFT result in the output array
 			int startIndex = windowSize * frame;
 			for (int i = 0; i < l; i++) {
-				stftOutput_re[startIndex + i] = tmp_re[i];
-				stftOutput_im[startIndex + i] = tmp_im[i];
+				stftOutput[0][startIndex + i] = tmp_re[i];
+				stftOutput[1][startIndex + i] = tmp_im[i];
 			}
 			//stftOutput[frame] = fftResult;
 		}
 
-		return convertToMatrixBlocks(stftOutput_re, stftOutput_im);
+		return stftOutput;
 	}
 
-	private static MatrixBlock[] convertToMatrixBlocks(double[] in_re, double[] in_im){
+	private static MatrixBlock[] convertToMatrixBlocks(double[][] in){
 
-		int cols = in_re.length;
+		int cols = in[0].length;
 
-		MatrixBlock re = new MatrixBlock(1, cols, in_re);
-		MatrixBlock im = new MatrixBlock(1, cols, in_im);
+		MatrixBlock re = new MatrixBlock(1, cols, in[0]);
+		MatrixBlock im = new MatrixBlock(1, cols, in[1]);
 
 		return new MatrixBlock[]{re, im};
 	}
@@ -97,8 +96,13 @@ public class LibMatrixSTFT {
 	}
 
 	public static MatrixBlock[] stft(double[] in, int windowSize, int overlap){
-		double[] in_im = new double[in.length];
-		return stft(convertToMatrixBlocks(in, in_im), windowSize, overlap);
+		double[][] arr = new double[2][in.length];
+		arr[0] = in;
+		return stft(convertToMatrixBlocks(arr), windowSize, overlap);
+	}
+
+	public static MatrixBlock[] stft(double[][] in, int windowSize, int overlap){
+		return stft(convertToMatrixBlocks(in), windowSize, overlap);
 	}
 
 	public static MatrixBlock[] stft(MatrixBlock[] in, int windowSize, int overlap){
