@@ -31,19 +31,48 @@ import javax.sound.sampled.UnsupportedAudioFileException;
 public class ReaderWavFile {
 
 	public static double[] readMonoAudioFromWavFile(String filePath) {
-
 		try {
-			// open audio file
-			AudioInputStream audioInputStream = AudioSystem.getAudioInputStream(new File(filePath));
-			double[] audioValues = readMonoAudioFromWavFile(audioInputStream);
+			File file = new File(filePath);
+			if (!file.exists()) {
+				System.err.println("File not found: " + filePath);
+				return null;
+			}
+
+			AudioInputStream audioInputStream = AudioSystem.getAudioInputStream(file);
+			// Assuming you want to process the audio stream as mono...
+			AudioFormat baseFormat = audioInputStream.getFormat();
+			AudioFormat decodedFormat = new AudioFormat(
+					AudioFormat.Encoding.PCM_SIGNED,
+					baseFormat.getSampleRate(),
+					16,
+					1,
+					2,
+					baseFormat.getSampleRate(),
+					false);
+			AudioInputStream decodedAudioInputStream = AudioSystem.getAudioInputStream(decodedFormat, audioInputStream);
+
+			int numFrames = (int) decodedAudioInputStream.getFrameLength();
+			byte[] audioData = new byte[numFrames * decodedFormat.getFrameSize()];
+			int bytesRead = decodedAudioInputStream.read(audioData);
+
+			if (bytesRead == -1) {
+				System.err.println("Could not read audio data from file: " + filePath);
+				return null;
+			}
+
+			double[] audioValues = new double[numFrames];
+			for (int i = 0, frameIndex = 0; i < bytesRead; i += decodedFormat.getFrameSize(), frameIndex++) {
+				int sample = (audioData[i + 1] & 0xff) | (audioData[i] << 8);
+				audioValues[frameIndex] = sample / 32768.0;
+			}
+
+			decodedAudioInputStream.close();
 			audioInputStream.close();
 			return audioValues;
-
 		} catch (UnsupportedAudioFileException | IOException e) {
 			e.printStackTrace();
 			return null;
 		}
-
 	}
 
 	public static double[] readMonoAudioFromWavFile(InputStream inputStream) {
@@ -96,7 +125,6 @@ public class ReaderWavFile {
 			e.printStackTrace();
 			return null;
 		}
-
 	}
 
 }
