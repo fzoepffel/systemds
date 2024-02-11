@@ -17,114 +17,97 @@
  * under the License.
  */
 
-package org.apache.sysds.runtime.io;
+package org.apache.sysds.runtime.matrix.data;
+
+import org.apache.sysds.runtime.io.ReaderWavFile;
+
+import java.io.*;
+import java.net.URL;
+
+import java.util.List;
+import java.util.ArrayList;
+import java.util.Set;
+import java.util.HashSet;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.InputStream;
 
-import javax.sound.sampled.AudioSystem;
-import javax.sound.sampled.AudioFormat;
-import javax.sound.sampled.AudioInputStream;
-import javax.sound.sampled.UnsupportedAudioFileException;
+public class LibMatrixKeywordSpotting {
 
-public class ReaderWavFile {
+	List<double[]> samples = new ArrayList<>();
+	//List<String> labels = new ArrayList<>();
+	List<double[]> spectrograms = new ArrayList<>(); // Store spectrograms for writing
 
-	public static double[] readMonoAudioFromWavFile(String filePath) {
-		try {
-			File file = new File(filePath);
-			if (!file.exists()) {
-				System.err.println("File not found: " + filePath);
-				return null;
+	public LibMatrixKeywordSpotting() {
+		loadAllData();
+		convertToSpectrogramsAndSave();
+	}
+
+	private void convertToSpectrogramsAndSave() {
+		for (int i = 0; i < samples.size(); i++) {
+			double[] wave = samples.get(i);
+			//double[] magnitudes = convertWaveToMagnitudesSpectrogram(wave);
+			spectrograms.add(wave); // Add spectrogram data for saving
+		}
+		// Now, write the spectrogram data to a text file
+		saveSpectrogramsToCSVFile("yes.csv");
+	}
+
+	private void saveSpectrogramsToCSVFile(String fileName) {
+		try (PrintWriter out = new PrintWriter(new BufferedWriter(new FileWriter(fileName)))) {
+
+			for (int i = 0; i < spectrograms.size(); i++) {
+
+				// String label = labels.get(i).substring(0, labels.get(i).lastIndexOf('.'));
+				double[] spectrogram = spectrograms.get(i);
+				if (spectrogram.length > 0) {
+					out.print(spectrogram[0]);
+					for (int j = 1; j < spectrogram.length; j++) {
+						out.print("," + spectrogram[j]);
+					}
+				}
+				out.println();
 			}
-
-			AudioInputStream audioInputStream = AudioSystem.getAudioInputStream(file);
-			// Assuming you want to process the audio stream as mono...
-			AudioFormat baseFormat = audioInputStream.getFormat();
-			AudioFormat decodedFormat = new AudioFormat(
-					AudioFormat.Encoding.PCM_SIGNED,
-					baseFormat.getSampleRate(),
-					16,
-					1,
-					2,
-					baseFormat.getSampleRate(),
-					false);
-			AudioInputStream decodedAudioInputStream = AudioSystem.getAudioInputStream(decodedFormat, audioInputStream);
-
-			int numFrames = (int) decodedAudioInputStream.getFrameLength();
-			byte[] audioData = new byte[numFrames * decodedFormat.getFrameSize()];
-			int bytesRead = decodedAudioInputStream.read(audioData);
-
-			if (bytesRead == -1) {
-				System.err.println("Could not read audio data from file: " + filePath);
-				return null;
-			}
-
-			double[] audioValues = new double[numFrames];
-			for (int i = 0, frameIndex = 0; i < bytesRead; i += decodedFormat.getFrameSize(), frameIndex++) {
-				int sample = (audioData[i + 1] & 0xff) | (audioData[i] << 8);
-				audioValues[frameIndex] = sample / 32768.0;
-			}
-
-			decodedAudioInputStream.close();
-			audioInputStream.close();
-			return audioValues;
-		} catch (UnsupportedAudioFileException | IOException e) {
+		} catch (IOException e) {
 			e.printStackTrace();
-			return null;
 		}
 	}
 
-	public static double[] readMonoAudioFromWavFile(InputStream inputStream) {
+	private void loadAllData() {
+		String folderPath = "./yes";
+		File dir = new File(folderPath);
 
-		try {
-			// open audio file
-			AudioInputStream audioInputStream = AudioSystem.getAudioInputStream(inputStream);
 
-			// collapse channels to mono channel
-			int channels = 1;
-			AudioFormat monoAudioFormat = new AudioFormat(
-					audioInputStream.getFormat().getSampleRate(),
-					audioInputStream.getFormat().getSampleSizeInBits(),
-					channels,
-					true,
-					false
-			);
-			AudioInputStream monoAudioInputStream = AudioSystem.getAudioInputStream(monoAudioFormat, audioInputStream);
+		if (dir.exists() && dir.isDirectory()) {
+			File[] files = dir.listFiles((d, name) -> name.endsWith(".wav"));
+			if (files != null) {
 
-			// curation of audio
-			int numFrames = (int) monoAudioInputStream.getFrameLength();
-			// size of one frame in bytes
-			int frameSize = monoAudioInputStream.getFormat().getFrameSize();
+				for (File file : files) {
 
-			// read audio into buffer
-			byte[] audioData = new byte[numFrames * frameSize];
-			int bytesRead = audioInputStream.read(audioData);
+					try {
 
-			// read operation failed
-			if (bytesRead == -1) {
-				return null;
+						double[] data = ReaderWavFile.readMonoAudioFromWavFile(file.getAbsolutePath());
+
+						if (data != null) {
+							samples.add(data);
+							//labels.add(file.getName());
+						}
+
+					} catch (Exception e) {
+						e.printStackTrace();
+					}
+				}
 			}
-
-			// convert byte array to double array
-			double[] audioValues = new double[numFrames];
-			for (int i = 0, frameIndex = 0; i < bytesRead; i += frameSize, frameIndex++) {
-				// 16-bit PCM encoding
-				// combine two bytes into a 16-bit integer (short)
-				short sampleValue = (short) ((audioData[i + 1] << 8) | (audioData[i] & 0xFF));
-				// audio ranges from -32768 to 32767, normalize to range -1 to 1
-				audioValues[frameIndex] = sampleValue / 32768.0;
-			}
-
-			// close audio streams
-			monoAudioInputStream.close();
-			audioInputStream.close();
-			return audioValues;
-
-		} catch (UnsupportedAudioFileException | IOException e) {
-			e.printStackTrace();
-			return null;
+		} else {
+			System.out.println("Directory does not exist: " + folderPath);
 		}
 	}
 
+	public static void main(String[] args) {
+		new LibMatrixKeywordSpotting();
+		System.out.println("Spectrogram processing complete.");
+	}
 }
