@@ -383,37 +383,41 @@ public class BuiltinFunctionExpression extends DataIdentifier {
 			break;
 
 		}
-		case IFFT: 
-		{
-			checkNumParameters(1);
-			checkMatrixParam(getFirstExpr());
+			case IFFT: {
+				Expression expressionTwo = getSecondExpr();
+				checkNumParameters(getSecondExpr() != null ? 2 : 1);
+				checkMatrixParam(getFirstExpr());
+				if (expressionTwo != null)
+					checkMatrixParam(getSecondExpr());
 
-			// setup output properties
-			DataIdentifier ifftOut1 = (DataIdentifier) getOutputs()[0];
-			DataIdentifier ifftOut2 = (DataIdentifier) getOutputs()[1];
-			
-			// if (getFirstExpr().getOutput().getDim2() != 1 ||  getFirstExpr().getOutput().getDim2() != 2) {
-			// 	raiseValidateError("Eigen Decomposition can only be done on a square matrix. Input matrix is rectangular (rows=" + getFirstExpr().getOutput().getDim1() + ", cols="+ getFirstExpr().getOutput().getDim2() +")", conditional);
-			// }
-			
-			// Output1 - ifft Values
-			ifftOut1.setDataType(DataType.MATRIX);
-			ifftOut1.setValueType(ValueType.FP64);
-			ifftOut1.setDimensions(getFirstExpr().getOutput().getDim1(), getFirstExpr().getOutput().getDim2());
-			ifftOut1.setBlocksize(getFirstExpr().getOutput().getBlocksize());
-			
-			// Output2 - ifft Vectors
-			ifftOut2.setDataType(DataType.MATRIX);
-			ifftOut2.setValueType(ValueType.FP64);
-			ifftOut2.setDimensions(getFirstExpr().getOutput().getDim1(), getFirstExpr().getOutput().getDim2());
-			ifftOut2.setBlocksize(getFirstExpr().getOutput().getBlocksize());
-			
-			break;
+				// setup output properties
+				DataIdentifier ifftOut1 = (DataIdentifier) getOutputs()[0];
+				DataIdentifier ifftOut2 = (DataIdentifier) getOutputs()[1];
 
-		}
+				// TODO: Add Validation
+				// if (getFirstExpr().getOutput().getDim2() != 1 ||
+				// getFirstExpr().getOutput().getDim2() != 2) {
+				// raiseValidateError("Eigen Decomposition can only be done on a square matrix.
+				// Input matrix is rectangular (rows=" + getFirstExpr().getOutput().getDim1() +
+				// ", cols="+ getFirstExpr().getOutput().getDim2() +")", conditional);
+				// }
+
+				// Output1 - ifft Values
+				ifftOut1.setDataType(DataType.MATRIX);
+				ifftOut1.setValueType(ValueType.FP64);
+				ifftOut1.setDimensions(getFirstExpr().getOutput().getDim1(), getFirstExpr().getOutput().getDim2());
+				ifftOut1.setBlocksize(getFirstExpr().getOutput().getBlocksize());
+
+				// Output2 - ifft Vectors
+				ifftOut2.setDataType(DataType.MATRIX);
+				ifftOut2.setValueType(ValueType.FP64);
+				ifftOut2.setDimensions(getFirstExpr().getOutput().getDim1(), getFirstExpr().getOutput().getDim2());
+				ifftOut2.setBlocksize(getFirstExpr().getOutput().getBlocksize());
+
+				break;
+			}
 		case STFT:
 		{
-			checkNumParameters(3);
 			checkMatrixParam(getFirstExpr());
 
 			// setup output properties
@@ -424,8 +428,8 @@ public class BuiltinFunctionExpression extends DataIdentifier {
 			// 	raiseValidateError("Eigen Decomposition can only be done on a square matrix. Input matrix is rectangular (rows=" + getFirstExpr().getOutput().getDim1() + ", cols="+ getFirstExpr().getOutput().getDim2() +")", conditional);
 			// }
 
-			checkMatrixParam(getSecondExpr());
-			checkMatrixParam(getThirdExpr());
+			//checkMatrixParam(getSecondExpr());
+			//checkMatrixParam(getThirdExpr());
 
 			// Output1 - stft Values
 			stftOut1.setDataType(DataType.MATRIX);
