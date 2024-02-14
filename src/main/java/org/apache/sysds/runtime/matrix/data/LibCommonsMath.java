@@ -327,33 +327,52 @@ public class LibCommonsMath
 	 * @return array of matrix blocks
 	 */
 	private static MatrixBlock[] computeFFT(MatrixBlock in) {
-		if (in == null || in.isEmptyBlock(false))
+		if(in == null)
 			throw new DMLRuntimeException("Invalid empty block");
-
+		if (in.isEmptyBlock(false)) {
+			// Return the original matrix as the result
+			return new MatrixBlock[]{in, new MatrixBlock(in.getNumRows(), in.getNumColumns(), true)}; // Assuming you need to return two matrices: the real part and an imaginary part initialized to 0.
+		}
 		// run fft
 		in.sparseToDense();
 		return fft(in);
 	}
 
+	private static boolean isMatrixAllZeros(MatrixBlock matrix) {
+		// Fast check for sparse representation
+		if (matrix.isInSparseFormat()) {
+			return matrix.getNonZeros() == 0;
+		}
+		// Dense format check
+		double sum = matrix.sum();
+		return sum == 0;
+	}
+
 	/**
 	 * Function to perform IFFT on a given matrix.
 	 *
-	 * @param in1 matrix object
-	 * @param in2 matrix object
+	 * @param re matrix object
+	 * @param im matrix object
 	 * @return array of matrix blocks
 	 */
-	private static MatrixBlock[] computeIFFT(MatrixBlock in1, MatrixBlock in2) {
-		if (in1 == null || in1.isEmptyBlock(false))
+
+	private static MatrixBlock[] computeIFFT(MatrixBlock re, MatrixBlock im) {
+		if(re == null )
 			throw new DMLRuntimeException("Invalid empty block");
 
 		// run ifft
-		if (in2 != null) {
-			in1.sparseToDense();
-			in2.sparseToDense();
-			return ifft(in1, in2);
-		} else {
-			in1.sparseToDense();
-			return ifft(in1);
+		if(im != null && !im.isEmptyBlock(false)) {
+			re.sparseToDense();
+			im.sparseToDense();
+			return ifft(re, im);
+		}
+		else {
+			if (re.isEmptyBlock(false)) {
+				// Return the original matrix as the result
+				return new MatrixBlock[]{re, new MatrixBlock(re.getNumRows(), re.getNumColumns(), true)}; // Assuming you need to return two matrices: the real part and an imaginary part initialized to 0.
+			}
+			re.sparseToDense();
+			return ifft(re);
 		}
 
 	}
@@ -361,24 +380,34 @@ public class LibCommonsMath
 	/**
 	 * Function to perform STFT on a given matrix.
 	 *
-	 * @param in1 matrix object
-	 * @param in2 matrix object
+	 * @param re matrix object
+	 * @param im matrix object
 	 * @param windowSize of stft
 	 * @param overlap of stft
 	 * @return array of matrix blocks
 	 */
-	private static MatrixBlock[] computeSTFT(MatrixBlock in1, MatrixBlock in2, int windowSize, int overlap) {
-		if (in1 == null || in1.isEmptyBlock(false))
+	private static MatrixBlock[] computeSTFT(MatrixBlock re, MatrixBlock im, int windowSize, int overlap) {
+		if (re == null) {
 			throw new DMLRuntimeException("Invalid empty block");
-
-		// run stft
-		if (in2 != null) {
-			in1.sparseToDense();
-			in2.sparseToDense();
-			return stft(in1, in2, windowSize, overlap);
+		} else if (im != null && !im.isEmptyBlock(false)) {
+			re.sparseToDense();
+			im.sparseToDense();
+			return stft(re, im, windowSize, overlap);
 		} else {
-			in1.sparseToDense();
-			return stft(in1, windowSize, overlap);
+			if (re.isEmptyBlock(false)) {
+				// Return the original matrix as the result
+				int stepSize = windowSize - overlap;
+				if (stepSize == 0) {
+					throw new IllegalArgumentException("(windowSize - overlap) is zero");
+				}
+				int totalFrames = (re.getNumColumns() - overlap + stepSize - 1) / stepSize;
+				int out_len = totalFrames * windowSize;
+				double[] out_zero = new double[out_len];
+
+				return new MatrixBlock[]{new MatrixBlock(1, out_len, out_zero), new MatrixBlock(1, out_len, out_zero)};
+				}
+			re.sparseToDense();
+			return stft(re, windowSize, overlap);
 		}
 	}
 
