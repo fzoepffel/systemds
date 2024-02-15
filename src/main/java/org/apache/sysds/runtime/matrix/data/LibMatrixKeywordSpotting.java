@@ -123,6 +123,7 @@ public class LibMatrixKeywordSpotting {
 					dir = findDir(entry, dirs);
 				}
 				// read file
+				// TODO: isn't working: we need an audioInputStream!
 				double[] data = ReaderWavFile.readMonoAudioFromWavFile(new ByteArrayInputStream(entry.getExtra()));
 				waves.add(data);
 				labels.add(dir);
