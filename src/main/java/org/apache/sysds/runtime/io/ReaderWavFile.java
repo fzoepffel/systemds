@@ -47,11 +47,9 @@ public class ReaderWavFile {
 
 	}
 
-	public static double[] readMonoAudioFromWavFile(InputStream inputStream) {
+	public static double[] readMonoAudioFromWavFile(AudioInputStream audioInputStream) {
 
 		try {
-			// open audio file
-			AudioInputStream audioInputStream = AudioSystem.getAudioInputStream(inputStream);
 
 			// collapse channels to mono channel
 			int channels = 1;
@@ -83,13 +81,12 @@ public class ReaderWavFile {
 				audioValues[frameIndex] = sampleValue / 32768.0;
 			}
 
-			// close audio streams
+			// close mono audio stream
 			monoAudioInputStream.close();
-			audioInputStream.close();
 			return audioValues;
 
 		}
-		catch(UnsupportedAudioFileException | IOException e) {
+		catch(IOException e) {
 			e.printStackTrace();
 			return null;
 		}
