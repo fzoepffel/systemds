@@ -32,13 +32,6 @@ public class LibMatrixKeywordSpotting {
 
 	public static void main(String[] args) {
 
-		// download data
-		String url = "http://storage.googleapis.com/download.tensorflow.org/data/mini_speech_commands.zip";
-		File dest = new File("./tmp");
-		String startsWith = "mini_speech_commands";
-		String endsWith = ".wav";
-		DownloaderZip.downloaderZip(url, dest, startsWith, endsWith);
-
 		// zip contains command folders which contain corresponding .wav files
 		List<double[]> waves = new ArrayList<>();
 		List<Integer> labels = new ArrayList<>();
