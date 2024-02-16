@@ -21,6 +21,7 @@ package org.apache.sysds.runtime.matrix.data;
 
 import org.apache.sysds.runtime.io.ReaderWavFile;
 
+import javax.sound.sampled.*;
 import java.net.URL;
 
 import java.io.InputStream;
@@ -124,7 +125,10 @@ public class LibMatrixKeywordSpotting {
 				}
 				// read file
 				// TODO: isn't working: we need an audioInputStream!
-				double[] data = ReaderWavFile.readMonoAudioFromWavFile(new ByteArrayInputStream(entry.getExtra()));
+				AudioFormat format = new AudioFormat( AudioFormat.Encoding.PCM_SIGNED, 16000, 16, 1, 2, 16000, false);
+				int length = (int) Math.ceil((double) entry.getExtra().length / format.getFrameSize());
+				AudioInputStream audio = new AudioInputStream(new ByteArrayInputStream(entry.getExtra()), format, length);
+				double[] data = ReaderWavFile.readMonoAudioFromWavFile(audio);
 				waves.add(data);
 				labels.add(dir);
 			}
