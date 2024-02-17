@@ -19,12 +19,14 @@
 
 package org.apache.sysds.runtime.matrix.data;
 
-import org.apache.commons.io.FileUtils;
 import org.apache.sysds.runtime.io.ReaderWavFile;
-import org.apache.sysds.runtime.io.DownloaderZip;
 
-import java.io.File;
+import javax.sound.sampled.AudioFormat;
+import javax.sound.sampled.AudioInputStream;
+
 import java.io.IOException;
+import java.io.FileInputStream;
+import java.io.ByteArrayInputStream;
 import java.io.FileWriter;
 import java.io.PrintWriter;
 import java.io.BufferedWriter;
@@ -32,48 +34,25 @@ import java.io.BufferedWriter;
 import java.util.List;
 import java.util.Arrays;
 import java.util.ArrayList;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 
 public class LibMatrixKeywordSpotting {
 
-	public static void main(String[] args) throws IOException {
+	/**
+	 * Please download the
+	 * <a href="http://storage.googleapis.com/download.tensorflow.org/data/mini_speech_commands.zip">zip file</a> before
+	 * running. Save it in "./tmp".
+	 */
+	public static void main(String[] args) {
 
-		// download data
-		String url = "http://storage.googleapis.com/download.tensorflow.org/data/mini_speech_commands.zip";
-		File dest = new File("./tmp");
-		String startsWith = "mini_speech_commands";
-		String endsWith = ".wav";
-		DownloaderZip.downloaderZip(url, dest, startsWith, endsWith);
-
-		// zip contains command folders which contain corresponding .wav files
-		// TODO: write directly into the csv
-		List<int[]> waves = new ArrayList<>();
-		List<Integer> labels = new ArrayList<>();
-		List<String> commands = new ArrayList<>();
-
-		String sourceDirPath = "./tmp/mini_speech_commands";
-		extractData(sourceDirPath, waves, labels, commands);
-
-		// delete data
-		// FileUtils.deleteDirectory(new File(sourceDirPath));
-
-		saveToCSV("./tmp/waves", waves);
-		saveToCSV("./tmp/labels", labels);
-		saveToCSV("./tmp/commands", commands);
-
-	}
-
-	private static void extractData(String sourceDir, List<int[]> waves, List<Integer> labels,
-		List<String> commands) {
+		String basePath = "./tmp/";
+		String zipPath = basePath + "mini_speech_commands.zip";
 
 		try {
-
-			// get directory names
-			getDirectories(sourceDir, commands);
-
-			for(String command : commands) {
-				readWaveFiles(sourceDir, command, waves, labels, commands);
-			}
-
+			// get zip data
+			ZipInputStream zipStream = new ZipInputStream(new FileInputStream(zipPath));
+			saveDataToCSV(basePath, zipStream);
 		}
 		catch(IOException e) {
 			e.printStackTrace();
@@ -81,58 +60,81 @@ public class LibMatrixKeywordSpotting {
 
 	}
 
-	private static void getDirectories(String sourceDir, List<String> commands) throws IOException {
+	private static void saveDataToCSV(String basePath, ZipInputStream zipStream) throws IOException {
 
-		File[] subDirs = new File(sourceDir).listFiles();
-		if(subDirs == null)
+		PrintWriter commandsCSV = new PrintWriter(new BufferedWriter(new FileWriter(basePath + "commands")));
+		PrintWriter wavesCSV = new PrintWriter(new BufferedWriter(new FileWriter(basePath + "waves")));
+		PrintWriter labelsCSV = new PrintWriter(new BufferedWriter(new FileWriter(basePath + "labels")));
+
+		List<String> commands = new ArrayList<>();
+
+		// exclude main directory
+		ZipEntry entry = zipStream.getNextEntry();
+
+		if(entry == null)
 			return;
+		String mainDir = entry.getName();
 
-		for(File c : subDirs) {
-			if(c.isDirectory()) {
-				commands.add(c.getName());
+		while((entry = zipStream.getNextEntry()) != null) {
+
+			if(entry.isDirectory()) {
+
+				String dir = entry.getName();
+				// remove "/" at the end
+				String name = dir.substring(mainDir.length(), dir.length() - 1);
+
+				commands.add(name);
+				// save to csv
+				commandsCSV.print(name);
+				commandsCSV.println();
+
+			}
+			else if(isWavFileToProcess(entry)) {
+
+				// read file
+				AudioFormat format = new AudioFormat(AudioFormat.Encoding.PCM_SIGNED, 16000, 16, 1, 2, 16000, false);
+				int length = (int) Math.ceil((double) entry.getExtra().length / format.getFrameSize());
+				AudioInputStream audio = new AudioInputStream(new ByteArrayInputStream(entry.getExtra()), format,
+					length);
+				int[] data = ReaderWavFile.readMonoAudioFromWavFile(audio);
+
+				// save to csv
+				String str = Arrays.toString(data);
+				wavesCSV.print(str.substring(1, str.length() - 1));
+				wavesCSV.println();
+
+				labelsCSV.print(commands.indexOf(getCommand(entry)));
+				labelsCSV.println();
 			}
 		}
 
-	}
-
-	private static void readWaveFiles(String sourceDir, String command, List<int[]> waves, List<Integer> labels,
-		List<String> commands) {
-
-		String path = sourceDir + '/' + command;
-		File dir = new File(path);
-
-		File[] waveFiles = dir.listFiles();
-		if(waveFiles == null)
-			return;
-
-		for(File file : waveFiles) {
-			waves.add(ReaderWavFile.readMonoAudioFromWavFile(file.getPath()));
-			labels.add(commands.indexOf(command));
-		}
+		commandsCSV.close();
+		labelsCSV.close();
+		wavesCSV.close();
 
 	}
 
-	private static void saveToCSV(String path, List<?> data) {
+	private static boolean isWavFileToProcess(ZipEntry entry) {
 
-		try(PrintWriter out = new PrintWriter(new BufferedWriter(new FileWriter(path)))) {
+		String path = entry.getName();
 
-			for(Object elem : data) {
-				if(elem instanceof int[]) {
-					String str = Arrays.toString((int[]) elem);
-					// remove brackets
-					out.print(str.substring(1, str.length() - 1));
-				}
-				else {
-					out.print(elem);
-				}
-				out.println();
-			}
+		if(!path.endsWith(".wav"))
+			return false;
 
-		}
-		catch(IOException e) {
-			e.printStackTrace();
-		}
+		int end = path.lastIndexOf('/');
+		String file = path.substring(end + 1);
 
+		return !file.startsWith(".");
+	}
+
+	private static String getCommand(ZipEntry entry) {
+
+		String path = entry.getName();
+
+		int end = path.lastIndexOf('/');
+		int start = path.substring(0, end).indexOf('/');
+
+		return path.substring(start + 1, end);
 	}
 
 }
