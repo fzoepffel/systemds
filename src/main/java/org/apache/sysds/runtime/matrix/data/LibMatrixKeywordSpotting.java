@@ -37,15 +37,16 @@ import java.util.zip.ZipInputStream;
 
 public class LibMatrixKeywordSpotting {
 
+	/**
+	 * Please download the <a href="http://storage.googleapis.com/download.tensorflow.org/data/mini_speech_commands.zip">zip file</a> before running.
+	 * Save it in "./tmp".
+	 */
 	public static void main(String[] args) {
-
-		// load all data
-		String url = "http://storage.googleapis.com/download.tensorflow.org/data/mini_speech_commands.zip";
 
 		// zip contains command folders which contain corresponding .wav files
 		List<int[]> waves = new ArrayList<>();
 		List<String> labels = new ArrayList<>();
-		loadAllData(url, waves, labels);
+		loadAllData(waves, labels);
 
 		// TODO:
 		// csv for waves
@@ -55,11 +56,11 @@ public class LibMatrixKeywordSpotting {
 
 	}
 
-	private static void loadAllData(String url, List<int[]> waves, List<String> labels) {
+	private static void loadAllData(List<int[]> waves, List<String> labels) {
 
 		try {
 			// get zip data
-			byte[] zipData = getBytesZipFile(new URL(url));
+			byte[] zipData = getBytesZipFile();
 
 			// get folder names
 			List<String> dirs = getDirectories(zipData);
@@ -73,11 +74,10 @@ public class LibMatrixKeywordSpotting {
 
 	}
 
-	private static byte[] getBytesZipFile(URL url) throws IOException {
+	private static byte[] getBytesZipFile() throws IOException {
 
-		InputStream in = url.openConnection().getInputStream();
-		// String zipFilePath = "./src/main/java/org/apache/sysds/runtime/matrix/data/mini_speech_commands_slimmed.zip";
-		// InputStream in = new FileInputStream(zipFilePath);
+		String zipFilePath = "./src/main/java/org/apache/sysds/runtime/matrix/data/mini_speech_commands_slimmed.zip";
+		InputStream in = new FileInputStream(zipFilePath);
 
 		ByteArrayOutputStream out = new ByteArrayOutputStream();
 		byte[] dataBuffer = new byte[1024];
