@@ -119,7 +119,7 @@ public class LibCommonsMath
 
 	public static MatrixBlock[] multiReturnOperations(MatrixBlock in, String opcode, int windowSize, int overlap) {
 		if(opcode.equals("stft"))
-			return computeSTFT(in, null, windowSize, overlap);
+			return computeSTFT(in, windowSize, overlap);
 		else if(opcode.equals("qr"))
 			return computeQR(in);
 		else if (opcode.equals("qr2"))
@@ -137,7 +137,7 @@ public class LibCommonsMath
 		else if (opcode.equals("fft"))
 			return computeFFT(in);
 		else if (opcode.equals("ifft"))
-			return computeIFFT(in, null);
+			return computeIFFT(in);
 		return null;
 	}
 
@@ -168,7 +168,7 @@ public class LibCommonsMath
 		else if (opcode.equals("fft"))
 			return computeFFT(in);
 		else if (opcode.equals("ifft"))
-			return computeIFFT(in, null);
+			return computeIFFT(in);
 		return null;
 	}
 
@@ -338,16 +338,6 @@ public class LibCommonsMath
 		return fft(in);
 	}
 
-	private static boolean isMatrixAllZeros(MatrixBlock matrix) {
-		// Fast check for sparse representation
-		if (matrix.isInSparseFormat()) {
-			return matrix.getNonZeros() == 0;
-		}
-		// Dense format check
-		double sum = matrix.sum();
-		return sum == 0;
-	}
-
 	/**
 	 * Function to perform IFFT on a given matrix.
 	 *
@@ -375,6 +365,16 @@ public class LibCommonsMath
 			return ifft(re);
 		}
 
+	}
+
+	/**
+	 * Function to perform IFFT on a given matrix.
+	 *
+	 * @param re matrix object
+	 * @return array of matrix blocks
+	 */
+	private static MatrixBlock[] computeIFFT(MatrixBlock re) {
+		return computeIFFT(re, null);
 	}
 
 	/**
@@ -415,6 +415,16 @@ public class LibCommonsMath
 			re.sparseToDense();
 			return stft(re, windowSize, overlap);
 		}
+	}
+
+	/**
+	 * Function to perform STFT on a given matrix.
+	 *
+	 * @param re matrix object
+	 * @return array of matrix blocks
+	 */
+	private static MatrixBlock[] computeSTFT(MatrixBlock re, int windowSize, int overlap) {
+		return computeSTFT(re, null, windowSize, overlap);
 	}
 
 	/**
