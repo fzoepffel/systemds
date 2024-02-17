@@ -43,7 +43,7 @@ public class LibMatrixKeywordSpotting {
 		String url = "http://storage.googleapis.com/download.tensorflow.org/data/mini_speech_commands.zip";
 
 		// zip contains command folders which contain corresponding .wav files
-		List<double[]> waves = new ArrayList<>();
+		List<int[]> waves = new ArrayList<>();
 		List<String> labels = new ArrayList<>();
 		loadAllData(url, waves, labels);
 
@@ -55,7 +55,7 @@ public class LibMatrixKeywordSpotting {
 
 	}
 
-	private static void loadAllData(String url, List<double[]> waves, List<String> labels) {
+	private static void loadAllData(String url, List<int[]> waves, List<String> labels) {
 
 		try {
 			// get zip data
@@ -75,9 +75,9 @@ public class LibMatrixKeywordSpotting {
 
 	private static byte[] getBytesZipFile(URL url) throws IOException {
 
-		//InputStream in = url.openConnection().getInputStream();
-		String zipFilePath = "./src/main/java/org/apache/sysds/runtime/matrix/data/mini_speech_commands_slimmed.zip";
-		InputStream in = new FileInputStream(zipFilePath);
+		InputStream in = url.openConnection().getInputStream();
+		// String zipFilePath = "./src/main/java/org/apache/sysds/runtime/matrix/data/mini_speech_commands_slimmed.zip";
+		// InputStream in = new FileInputStream(zipFilePath);
 
 		ByteArrayOutputStream out = new ByteArrayOutputStream();
 		byte[] dataBuffer = new byte[1024];
@@ -111,7 +111,7 @@ public class LibMatrixKeywordSpotting {
 		return dirs;
 	}
 
-	private static void readWaveFiles(byte[] zipData, List<String> dirs, List<double[]> waves, List<String> labels)
+	private static void readWaveFiles(byte[] zipData, List<String> dirs, List<int[]> waves, List<String> labels)
 		throws IOException {
 
 		ZipInputStream stream = new ZipInputStream(new ByteArrayInputStream(zipData));
@@ -128,7 +128,7 @@ public class LibMatrixKeywordSpotting {
 				AudioFormat format = new AudioFormat( AudioFormat.Encoding.PCM_SIGNED, 16000, 16, 1, 2, 16000, false);
 				int length = (int) Math.ceil((double) entry.getExtra().length / format.getFrameSize());
 				AudioInputStream audio = new AudioInputStream(new ByteArrayInputStream(entry.getExtra()), format, length);
-				double[] data = ReaderWavFile.readMonoAudioFromWavFile(audio);
+				int[] data = ReaderWavFile.readMonoAudioFromWavFile(audio);
 				waves.add(data);
 				labels.add(dir);
 			}
