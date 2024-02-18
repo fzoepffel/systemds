@@ -247,8 +247,8 @@ public class LibMatrixFourier {
 
 		for(int j = startSub, cnt = 0; cnt < subNum / 2; j += 2 * step, cnt++) {
 
-			double omega_pow_re = FastMath.cos(cnt * angle);
-			double omega_pow_im = FastMath.sin(cnt * angle);
+			double omega_pow_re = cos_taylor(cnt * angle, 10);
+			double omega_pow_im = sin_taylor(cnt * angle, 10);
 
 			// calculate m using the result of odd index
 			double m_re = omega_pow_re * re[j + step] - omega_pow_im * im[j + step];
@@ -379,6 +379,42 @@ public class LibMatrixFourier {
 		catch(InterruptedException e) {
 			e.printStackTrace();
 		}
+	}
+
+	private static double sin_taylor(double x, int degreePoly){
+
+		double res = 0;
+
+		for (int i = 0; i < degreePoly; i++) {
+			int sign = (i % 2 == 0) ? 1 : -1;
+			res += sign * (Math.pow(x, 2 * i + 1) / factorial(2 * i + 1));
+		}
+
+		return res;
+	}
+
+	private static double cos_taylor(double x, int degreePoly){
+
+		double res = 0;
+
+		for (int i = 0; i < degreePoly; i++) {
+			int sign = (i % 2 == 0) ? 1 : -1;
+			res += sign * (Math.pow(x, 2 * i) / factorial(2 * i));
+		}
+
+		return res;
+	}
+
+	private static int factorial(int n) {
+
+		if (n < 0) throw new IllegalArgumentException("not defined for negative numbers");
+
+		int res = 1;
+		for (int i = 1; i <= n; i++) {
+			res *= i;
+		}
+
+		return res;
 	}
 
 }
